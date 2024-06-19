@@ -2,6 +2,25 @@ export interface NobitexResponseBase {
   status: string;
 }
 
+export interface Stats extends NobitexResponseBase {
+  stats: Record<string, AssetStats>;
+}
+
+export interface AssetStats {
+  isClosed: boolean;
+  bestSell: string;
+  bestBuy: string;
+  volumeSrc: string;
+  volumeDst: string;
+  latest: string;
+  mark: string;
+  dayLow: string;
+  dayHigh: string;
+  dayOpen: string;
+  dayClose: string;
+  dayChange: string;
+}
+
 export interface UserWallets extends NobitexResponseBase {
   wallets: Wallet[];
 }

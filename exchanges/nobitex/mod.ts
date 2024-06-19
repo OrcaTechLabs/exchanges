@@ -8,7 +8,7 @@ import {
 } from "../../interfaces/value-fetcher.interface.ts";
 import { ofetch } from "../../libs/ofetch.ts";
 import { parsePossibleLargeNumber } from "../../utils/bigint.ts";
-import { UserWallets } from "./types.ts";
+import { Stats, UserWallets } from "./types.ts";
 
 const nobitexApi = ofetch.create({
   baseURL: "https://api.nobitex.ir",
@@ -20,7 +20,7 @@ const nobitexApi = ofetch.create({
 class Nobitex implements BalanceFetcher, ValueFetcher {
   fetchAssetValues(requestedAssets: string[]): Promise<AssetValue[]> {
     const promises = requestedAssets.map(async (asset) => {
-      const assetValue = await nobitexApi<{ price: number }>(`/market/stats`, {
+      const assetValue = await nobitexApi<Stats>(`/market/stats`, {
         query: {
           srcCurrency: asset,
           dstCurrency: "usdt",
@@ -28,7 +28,7 @@ class Nobitex implements BalanceFetcher, ValueFetcher {
       });
       return {
         name: asset,
-        value: assetValue.price,
+        value: parseFloat(assetValue.stats[`${asset}_usdt`].latest),
       } as AssetValue;
     });
 
