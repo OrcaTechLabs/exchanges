@@ -29,9 +29,10 @@ class Nobitex implements BalanceFetcher, ValueFetcher {
 
       return {
         name: asset,
-        value: assetValue.stats[`${asset}-usdt`]
-          ? parseFloat(assetValue.stats[`${asset}-usdt`].latest)
-          : null,
+        value:
+          assetValue.stats[`${asset}-usdt`]?.isClosed === false
+            ? parseFloat(assetValue.stats[`${asset}-usdt`].latest)
+            : null,
       } as AssetValue;
     });
 
