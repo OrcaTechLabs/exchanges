@@ -14,7 +14,7 @@ const nobitexApi = ofetch.create({
   baseURL: "https://api.nobitex.ir",
   retry: 3,
   retryDelay: 500,
-  timeout: 3000,
+  timeout: 10_000,
 });
 
 class Nobitex implements BalanceFetcher, ValueFetcher {
