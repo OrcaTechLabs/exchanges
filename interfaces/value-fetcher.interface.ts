@@ -4,5 +4,5 @@ export interface ValueFetcher {
 
 export interface AssetValue {
   name: string;
-  value: number;
+  value: number | null;
 }

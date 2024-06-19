@@ -26,10 +26,12 @@ class Nobitex implements BalanceFetcher, ValueFetcher {
           dstCurrency: "usdt",
         },
       });
-      console.log(assetValue);
+
       return {
         name: asset,
-        value: parseFloat(assetValue.stats[`${asset}-usdt`].latest),
+        value: assetValue.stats[`${asset}-usdt`]
+          ? parseFloat(assetValue.stats[`${asset}-usdt`].latest)
+          : null,
       } as AssetValue;
     });
 
