@@ -13,7 +13,7 @@ import { Stats, UserWallets } from "./types.ts";
 const nobitexApi = ofetch.create({
   baseURL: "https://api.nobitex.ir",
   retry: 3,
-  retryDelay: 500,
+  retryDelay: 2 * 60 * 1_000 /* 2 minutes */,
   timeout: 10_000,
 });
 
