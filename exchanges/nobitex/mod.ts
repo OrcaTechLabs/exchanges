@@ -18,25 +18,24 @@ const nobitexApi = ofetch.create({
 });
 
 class Nobitex implements BalanceFetcher, ValueFetcher {
-  fetchAssetValues(requestedAssets: string[]): Promise<AssetValue[]> {
-    const promises = requestedAssets.map(async (asset) => {
-      const assetValue = await nobitexApi<Stats>(`/market/stats`, {
-        query: {
-          srcCurrency: asset,
-          dstCurrency: "usdt",
-        },
-      });
-
-      return {
-        name: asset,
-        value:
-          assetValue.stats[`${asset}-usdt`]?.isClosed === false
-            ? parseFloat(assetValue.stats[`${asset}-usdt`].latest)
-            : null,
-      } as AssetValue;
+  async fetchAssetValues(requestedAssets: string[]): Promise<AssetValue[]> {
+    const response = await nobitexApi<Stats>(`/market/stats`, {
+      query: {
+        srcCurrency: requestedAssets.join(`,`),
+        dstCurrency: "usdt",
+      },
     });
 
-    return Promise.all(promises);
+    const entries = Object.entries(response.stats);
+
+    return entries.map(([key, value]) => {
+      const [src, dest] = key.split("-");
+
+      return {
+        name: src,
+        value: parseFloat(value.latest),
+      } as AssetValue;
+    });
   }
   async fetchUserBalances(apiKey: string): Promise<Balance[]> {
     const userWallets = await nobitexApi<UserWallets>("/users/wallets/list", {
