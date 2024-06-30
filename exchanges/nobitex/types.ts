@@ -42,3 +42,17 @@ export interface DepositInfo {
   address: string | null;
   tag: string | null;
 }
+
+export interface UserTransactions extends NobitexResponseBase {
+  transactions: UserTransaction[];
+  hasNext?: boolean;
+}
+
+export interface UserTransaction {
+  id: number;
+  amount: string;
+  currency: string;
+  description: string;
+  created_at: string;
+  balance: string;
+}
