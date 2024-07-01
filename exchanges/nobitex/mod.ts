@@ -27,7 +27,7 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
   private async fetchTransactionsUntilIdIsFound(
     apiKey: string,
     config: {
-      lastTransactionId: number;
+      lastTransactionId: number | null;
       walletId: number;
     }
   ) {
@@ -48,8 +48,9 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
         }
       );
       const newTransactions = userTransactions.transactions.filter(
-        (transaction) => transaction.id > config.lastTransactionId
+        (transaction) => transaction.id > (config.lastTransactionId ?? 0)
       );
+      console.log({ userTransactions, newTransactions });
 
       transactions = transactions.concat(newTransactions);
 
@@ -91,16 +92,10 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
       const latestTransaction = config.latestAssetTransactionRecords?.find(
         (transaction) => transaction.asset_name === matchingAsset?.name
       );
-
-      return (
-        latestTransaction?.balance !== parsePossibleLargeNumber(wallet.balance)
-      );
+      const balance = parsePossibleLargeNumber(wallet.balance);
+      return latestTransaction?.balance !== balance;
     });
 
-    console.log({
-      userWallets,
-      updatedWallets,
-    });
     const promises = updatedWallets.map(async (wallet) => {
       const matchingAsset = config.supportedAssets.find((asset) => {
         if (asset.name === wallet.currency) {
