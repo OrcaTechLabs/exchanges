@@ -24,13 +24,13 @@ const nobitexApi = ofetch.create({
 });
 
 class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
-  private async fetchTransactionsUntilIdIsFound(
+  private fetchTransactionsUntilIdIsFound = async (
     apiKey: string,
     config: {
       lastTransactionId: number;
       walletId: number;
     }
-  ) {
+  ) => {
     let transactions: UserTransaction[] = [];
     let hasNext = true;
     while (hasNext) {
@@ -68,7 +68,8 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
     }
 
     return transactions;
-  }
+  };
+
   async fetchUserTransactions(
     apiKey: string,
     config: {
