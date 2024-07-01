@@ -155,15 +155,13 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
       const [src, dsc] = key.split("-");
       const value = parseFloat(rawValue.latest);
 
-      if (dsc === "rls" || isNaN(value)) {
-        continue;
-      }
-
       if (key === "usdt-rls") {
         results.push({
           name: "rls",
           value: 1 / value,
         });
+      } else if (dsc === "rls" || isNaN(value)) {
+        continue;
       } else {
         results.push({
           name: src,
