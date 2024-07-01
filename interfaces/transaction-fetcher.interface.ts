@@ -15,7 +15,7 @@ export interface Transaction {
   type: "buy" | "sell";
   asset_name: string;
   quantity: bigint | number;
-  price: number;
+  price: number | null;
   balance: bigint | number;
   meta: Record<string, unknown>;
 }

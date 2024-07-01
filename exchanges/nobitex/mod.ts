@@ -45,15 +45,11 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
             wallet: config.walletId,
             page: transactions.length / 100 + 1,
           },
-          onRequestError: console.error,
-          onResponseError: console.error,
-          onResponse: console.info,
         }
       );
       const newTransactions = userTransactions.transactions.filter(
         (transaction) => transaction.id > config.lastTransactionId
       );
-      console.log({ userTransactions, newTransactions });
 
       transactions = transactions.concat(newTransactions);
 
@@ -111,8 +107,6 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
         (transaction) => transaction.asset_name === matchingAsset?.name
       );
 
-      console.log({ wallet, matchingAsset, latestTransaction });
-
       const userTransactions = await this.fetchTransactionsUntilIdIsFound(
         apiKey,
         {
@@ -122,19 +116,16 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
         }
       );
 
-      console.log({
-        userTransactions,
-        latestTransaction,
-      });
-
       return userTransactions.map(
         (transaction) =>
           ({
             time: new Date(transaction.created_at),
             type: transaction.amount.startsWith("-") ? "sell" : "buy",
             asset_name: matchingAsset.name,
-            quantity: parsePossibleLargeNumber(transaction.amount),
-            price: 0,
+            quantity: parsePossibleLargeNumber(
+              transaction.amount.replace(/^-/, "")
+            ),
+            price: null,
             balance: parsePossibleLargeNumber(transaction.balance),
             meta: {
               nobitex_id: transaction.id,
