@@ -138,24 +138,37 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
     return (await Promise.all(promises)).flat();
   }
 
-  async fetchAssetValues(requestedAssets: string[]): Promise<AssetValue[]> {
+  async fetchAssetValues(): Promise<AssetValue[]> {
     const response = await nobitexApi<Stats>(`/market/stats`, {
       query: {
-        srcCurrency: requestedAssets.join(`,`),
-        dstCurrency: "usdt",
+        srcCurrency:
+          "btc,usdt,eth,etc,doge,ada,bch,ltc,bnb,eos,xlm,xrp,trx,uni,link,dai,dot,shib,aave,ftm,matic,axs,mana,sand,avax,usdc,gmt,mkr,sol,atom,grt,bat,near,ape,qnt,chz,xmr,egala,busd,algo,hbar,1inch,yfi,flow,snx,enj,crv,fil,wbtc,flr,ldo,dydx,apt,mask,comp,bal,lrc,lpt,ens,sushi,api3,one,glm,pmn,dao,cvc,nmr,storj,snt,ant,zrx,slp,egld,imx,blur,100k_floki,1b_babydoge,1m_nft,1m_btt,t,celr,arb,magic,gmx,band,cvx,ton,ssv,mdt,omg,wld,rdnt,jst,bico,rndr,woo,skl,gal,agix,fet,not,trb,1m_pepe,rsr,ethfi,agld,aevo,om",
+        dstCurrency: "usdt,rls",
       },
     });
 
     const entries = Object.entries(response.stats);
 
-    return entries.map(([key, value]) => {
-      const [src] = key.split("-");
-
-      return {
-        name: src,
-        value: parseFloat(value.latest),
-      } as AssetValue;
-    });
+    const results: AssetValue[] = [];
+    for (const entry of entries) {
+      const [key, value] = entry;
+      const [src, dsc] = key.split("-");
+      if (dsc === "rls") {
+        continue;
+      }
+      if (key === "usdt-rls") {
+        results.push({
+          name: "rls",
+          value: 1 / parseFloat(value.latest),
+        });
+      } else {
+        results.push({
+          name: src,
+          value: parseFloat(value.latest),
+        });
+      }
+    }
+    return results;
   }
 
   async fetchUserBalances(apiKey: string): Promise<Balance[]> {
