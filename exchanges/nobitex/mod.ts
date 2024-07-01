@@ -97,8 +97,6 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
       return latestTransaction?.balance !== balance;
     });
 
-    console.log({ updatedWallets });
-
     const promises = updatedWallets.map(async (wallet) => {
       const matchingAsset = config.supportedAssets.find((asset) => {
         if (asset.name === wallet.currency) {
@@ -112,6 +110,8 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
       const latestTransaction = config.latestAssetTransactionRecords?.find(
         (transaction) => transaction.asset_name === matchingAsset?.name
       );
+
+      console.log({ wallet, matchingAsset, latestTransaction });
 
       const userTransactions = await this.fetchTransactionsUntilIdIsFound(
         apiKey,
