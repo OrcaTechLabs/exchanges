@@ -183,8 +183,11 @@ class Nobitex
 
       try {
         return await this.enrichTransactionsWithPrices(withoutPrice);
-      } catch {
-        console.log("Failed to enrich transactions with prices for ", wallet);
+      } catch (error) {
+        console.log("Failed to enrich transactions with prices for ", {
+          error,
+          wallet,
+        });
         return withoutPrice;
       }
     });
