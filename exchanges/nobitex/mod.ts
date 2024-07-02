@@ -272,23 +272,25 @@ class Nobitex
     );
 
     // Step 3: Map prices to transactions
-    return userTransactions.map((transaction) => {
-      const assetPrices = pricesByAsset.find(
-        (p) => p.assetName === transaction.asset_name
-      )?.prices;
-      const transactionTime = transaction.time.getTime() / 1000;
-      // Find the closest price time to the transaction time (simplified approach)
-      const closestPrice = assetPrices?.reduce((prev, curr) =>
-        Math.abs(curr.time - transactionTime) <
-        Math.abs(prev.time - transactionTime)
-          ? curr
-          : prev
-      );
-      return {
-        ...transaction,
-        price: closestPrice?.price || null,
-      };
-    });
+    return (
+      userTransactions?.map((transaction) => {
+        const assetPrices = pricesByAsset.find(
+          (p) => p.assetName === transaction.asset_name
+        )?.prices;
+        const transactionTime = transaction.time.getTime() / 1000;
+        // Find the closest price time to the transaction time (simplified approach)
+        const closestPrice = assetPrices?.reduce((prev, curr) =>
+          Math.abs(curr.time - transactionTime) <
+          Math.abs(prev.time - transactionTime)
+            ? curr
+            : prev
+        );
+        return {
+          ...transaction,
+          price: closestPrice?.price || null,
+        };
+      }) ?? []
+    );
   }
 }
 
