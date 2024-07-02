@@ -24,6 +24,19 @@ const nobitexApi = ofetch.create({
 });
 
 class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
+  private findMatchingAsset(
+    wallet: UserWallets["wallets"][0],
+    assets: KnownAsset[]
+  ) {
+    return assets.find((asset) => {
+      if (asset.name === wallet.currency.toLowerCase()) {
+        return true;
+      }
+      return asset.aliases.some(
+        (alias) => alias === wallet.currency.toLowerCase()
+      );
+    });
+  }
   private fetchTransactionsUntilIdIsFound = async (
     apiKey: string,
     config: {
@@ -80,12 +93,10 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
     });
 
     const updatedWallets = userWallets.wallets.filter((wallet) => {
-      const matchingAsset = config.supportedAssets.find((asset) => {
-        if (asset.name === wallet.currency) {
-          return true;
-        }
-        return asset.aliases.some((alias) => alias === wallet.currency);
-      });
+      const matchingAsset = this.findMatchingAsset(
+        wallet,
+        config.supportedAssets
+      );
       const latestTransaction = config.latestAssetTransactionRecords?.find(
         (transaction) => transaction.asset_name === matchingAsset?.name
       );
@@ -94,12 +105,10 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
     });
 
     const promises = updatedWallets.map(async (wallet) => {
-      const matchingAsset = config.supportedAssets.find((asset) => {
-        if (asset.name === wallet.currency) {
-          return true;
-        }
-        return asset.aliases.some((alias) => alias === wallet.currency);
-      });
+      const matchingAsset = this.findMatchingAsset(
+        wallet,
+        config.supportedAssets
+      );
       if (!matchingAsset) {
         return Promise.resolve([] as Transaction[]);
       }
