@@ -56,3 +56,12 @@ export interface UserTransaction {
   created_at: string;
   balance: string;
 }
+
+export interface RawUdfResponse extends NobitexResponseBase {
+  t: number[];
+  c: number[];
+  o: number[];
+  h: number[];
+  l: number[];
+  v: number[];
+}

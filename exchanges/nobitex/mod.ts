@@ -7,11 +7,15 @@ import {
   AssetValue,
   ValueFetcher,
   KnownAsset,
+  FormattedUdf,
+  UdfFetcherConfig,
 } from "../../interfaces/mod.ts";
+import { UdfFetcher } from "../../interfaces/udf-fetcher.interface.ts";
 import { ofetch } from "../../libs/ofetch.ts";
 import { parsePossibleLargeNumber } from "../../utils/bigint.ts";
 import { metadataSchema } from "./schema.ts";
 import {
+  RawUdfResponse,
   Stats,
   UserTransaction,
   UserTransactions,
@@ -25,7 +29,35 @@ const nobitexApi = ofetch.create({
   timeout: 10_000,
 });
 
-class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
+class Nobitex
+  implements BalanceFetcher, ValueFetcher, TransactionFetcher, UdfFetcher
+{
+  private fetchRawUdf(config: UdfFetcherConfig): Promise<RawUdfResponse> {
+    return nobitexApi<RawUdfResponse>("/market/udf/history", {
+      query: {
+        symbol: config.symbol,
+        resolution: config.resolution,
+        from: config.from,
+        to: config.to,
+      },
+    });
+  }
+  async fetchUdf(config: UdfFetcherConfig): Promise<FormattedUdf[]> {
+    const UdfResponse = await this.fetchRawUdf(config);
+
+    return UdfResponse.t.map(
+      (time, index) =>
+        ({
+          time: time,
+          open: UdfResponse.o[index],
+          high: UdfResponse.h[index],
+          low: UdfResponse.l[index],
+          close: UdfResponse.c[index],
+          volume: UdfResponse.v[index],
+        } satisfies FormattedUdf)
+    );
+  }
+
   private validateMetadata(metadata: IntegrationMetadata) {
     return metadataSchema.parse(metadata);
   }
@@ -131,7 +163,7 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
         }
       );
 
-      return userTransactions.map(
+      const withoutPrice = userTransactions.map(
         (transaction) =>
           ({
             time: new Date(transaction.created_at),
@@ -148,6 +180,8 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
             },
           } satisfies Transaction)
       ) as Transaction[];
+
+      return this.enrichTransactionsWithPrices(withoutPrice);
     });
 
     return (await Promise.all(promises)).flat();
@@ -205,6 +239,51 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
           quantity: parsePossibleLargeNumber(wallet.balance),
         } satisfies Balance)
     );
+  }
+
+  private async enrichTransactionsWithPrices(userTransactions: Transaction[]) {
+    // Step 1: Find the earliest and latest transaction dates
+    const dates = userTransactions.map((t) => t.time.getTime());
+    const from = Math.min(...dates) / 1000;
+    const to = Math.max(...dates) / 1000;
+
+    // Step 2: Fetch UDF data for each asset and process it
+    const pricesByAsset = await Promise.all(
+      userTransactions.map(async (transaction) => {
+        const config: UdfFetcherConfig = {
+          symbol: `${transaction.asset_name.toLowerCase()}usdt`,
+          resolution: "1D",
+          from,
+          to,
+        };
+        const rawUdfResponse = await this.fetchRawUdf(config);
+        // Process the UDF data to extract prices (simplified here)
+        const prices = rawUdfResponse.t.map((time, index) => ({
+          time,
+          price: rawUdfResponse.c[index], // Assuming 'c' represents close prices
+        }));
+        return { assetName: transaction.asset_name, prices };
+      })
+    );
+
+    // Step 3: Map prices to transactions
+    return userTransactions.map((transaction) => {
+      const assetPrices = pricesByAsset.find(
+        (p) => p.assetName === transaction.asset_name
+      )?.prices;
+      const transactionTime = transaction.time.getTime() / 1000;
+      // Find the closest price time to the transaction time (simplified approach)
+      const closestPrice = assetPrices?.reduce((prev, curr) =>
+        Math.abs(curr.time - transactionTime) <
+        Math.abs(prev.time - transactionTime)
+          ? curr
+          : prev
+      );
+      return {
+        ...transaction,
+        price: closestPrice?.price || null,
+      };
+    });
   }
 }
 
