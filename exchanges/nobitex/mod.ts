@@ -252,39 +252,30 @@ class Nobitex
     const from = Math.floor(Math.min(...dates) / 1000);
     const to = Math.floor(Math.max(...dates) / 1000);
 
-    // Step 2: Fetch UDF data for each asset and process it
-    const pricesByAsset = await Promise.all(
-      userTransactions.map(async (transaction) => {
-        const config: UdfFetcherConfig = {
-          symbol: `${transaction.asset_name.toLowerCase()}usdt`,
-          resolution: "1D",
-          from,
-          to,
-        };
-        const rawUdfResponse = await this.fetchRawUdf(config);
-        // Process the UDF data to extract prices (simplified here)
-        const prices = rawUdfResponse.t.map((time, index) => ({
-          time,
-          price: rawUdfResponse.c[index], // Assuming 'c' represents close prices
-        }));
-        return { assetName: transaction.asset_name, prices };
-      })
-    );
+    const config: UdfFetcherConfig = {
+      symbol: `${userTransactions[0].asset_name.toLowerCase()}usdt`,
+      resolution: "1D",
+      from,
+      to,
+    };
+
+    const rawUdfResponse = await this.fetchRawUdf(config);
 
     // Step 3: Map prices to transactions
     return (
       userTransactions?.map((transaction) => {
-        const assetPrices = pricesByAsset.find(
-          (p) => p.assetName === transaction.asset_name
-        )?.prices;
+        const assetPrices = rawUdfResponse.t.map((time, index) => ({
+          time,
+          price: rawUdfResponse.c[index],
+        }));
         const transactionTime = transaction.time.getTime() / 1000;
-        // Find the closest price time to the transaction time (simplified approach)
         const closestPrice = assetPrices?.reduce((prev, curr) =>
           Math.abs(curr.time - transactionTime) <
           Math.abs(prev.time - transactionTime)
             ? curr
             : prev
         );
+        console.log({ closestPrice, assetName: transaction.asset_name });
         return {
           ...transaction,
           price: closestPrice?.price || null,
