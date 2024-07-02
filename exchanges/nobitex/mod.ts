@@ -263,7 +263,7 @@ class Nobitex
     };
 
     const rawUdfResponse = await this.fetchRawUdf(config);
-    console.log({ rawUdfResponse });
+    console.log({ rawUdfResponse, config });
     // Step 3: Map prices to transactions
     return (
       userTransactions?.map((transaction) => {
