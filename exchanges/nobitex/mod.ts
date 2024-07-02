@@ -256,14 +256,14 @@ class Nobitex
     const to = Math.floor(Math.max(...dates) / 1000);
 
     const config: UdfFetcherConfig = {
-      symbol: `${userTransactions[0].asset_name.toLowerCase()}usdt`,
-      resolution: "1D",
+      symbol: `${userTransactions[0]?.asset_name.toLowerCase()}usdt`,
+      resolution: "60",
       from,
       to,
     };
 
     const rawUdfResponse = await this.fetchRawUdf(config);
-
+    console.log({ rawUdfResponse });
     // Step 3: Map prices to transactions
     return (
       userTransactions?.map((transaction) => {
