@@ -1,3 +1,4 @@
+import { IntegrationMetadata } from "../../interfaces/general.interface.ts";
 import {
   TransactionFetcher,
   Transaction,
@@ -9,6 +10,7 @@ import {
 } from "../../interfaces/mod.ts";
 import { ofetch } from "../../libs/ofetch.ts";
 import { parsePossibleLargeNumber } from "../../utils/bigint.ts";
+import { metadataSchema } from "./schema.ts";
 import {
   Stats,
   UserTransaction,
@@ -24,6 +26,9 @@ const nobitexApi = ofetch.create({
 });
 
 class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
+  private validateMetadata(metadata: IntegrationMetadata) {
+    return metadataSchema.parse(metadata);
+  }
   private findMatchingAsset(
     wallet: UserWallets["wallets"][0],
     assets: KnownAsset[]
@@ -80,15 +85,16 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
   };
 
   async fetchUserTransactions(
-    apiKey: string,
+    IntegrationMetadata: IntegrationMetadata,
     config: {
       latestAssetTransactionRecords: Transaction[] | null;
       supportedAssets: KnownAsset[];
     }
   ): Promise<Transaction[]> {
+    const { api_key } = this.validateMetadata(IntegrationMetadata);
     const userWallets = await nobitexApi<UserWallets>("/users/wallets/list", {
       headers: {
-        Authorization: `Token ${apiKey}`,
+        Authorization: `Token ${api_key}`,
       },
     });
 
@@ -117,7 +123,7 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
       );
 
       const userTransactions = await this.fetchTransactionsUntilIdIsFound(
-        apiKey,
+        api_key,
         {
           lastTransactionId:
             (latestTransaction?.meta.nobitex_id as number) ?? 0,
@@ -181,10 +187,14 @@ class Nobitex implements BalanceFetcher, ValueFetcher, TransactionFetcher {
     return results;
   }
 
-  async fetchUserBalances(apiKey: string): Promise<Balance[]> {
+  async fetchUserBalances(
+    IntegrationMetadata: IntegrationMetadata
+  ): Promise<Balance[]> {
+    const { api_key } = this.validateMetadata(IntegrationMetadata);
+
     const userWallets = await nobitexApi<UserWallets>("/users/wallets/list", {
       headers: {
-        Authorization: `Token ${apiKey}`,
+        Authorization: `Token ${api_key}`,
       },
     });
 

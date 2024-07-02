@@ -3,3 +3,7 @@ export interface KnownAsset {
   type: "token" | "fiat";
   aliases: string[];
 }
+
+export interface IntegrationMetadata {
+  [key: string]: unknown;
+}

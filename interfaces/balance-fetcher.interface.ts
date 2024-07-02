@@ -1,5 +1,7 @@
+import { IntegrationMetadata } from "./general.interface.ts";
+
 export interface BalanceFetcher {
-  fetchUserBalances(apiKey: string): Promise<Balance[]>;
+  fetchUserBalances(apiKey: IntegrationMetadata): Promise<Balance[]>;
 }
 
 export interface Balance {

@@ -1,8 +1,8 @@
-import { KnownAsset } from "./general.interface.ts";
+import { IntegrationMetadata, KnownAsset } from "./general.interface.ts";
 
 export interface TransactionFetcher {
   fetchUserTransactions(
-    apiKey: string,
+    IntegrationMetadata: IntegrationMetadata,
     config: {
       latestAssetTransactionRecords: Transaction[];
       supportedAssets: KnownAsset[];
