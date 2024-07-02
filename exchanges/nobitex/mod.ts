@@ -249,8 +249,8 @@ class Nobitex
   private async enrichTransactionsWithPrices(userTransactions: Transaction[]) {
     // Step 1: Find the earliest and latest transaction dates
     const dates = userTransactions.map((t) => t.time.getTime());
-    const from = Math.min(...dates) / 1000;
-    const to = Math.max(...dates) / 1000;
+    const from = Math.floor(Math.min(...dates) / 1000);
+    const to = Math.floor(Math.max(...dates) / 1000);
 
     // Step 2: Fetch UDF data for each asset and process it
     const pricesByAsset = await Promise.all(
