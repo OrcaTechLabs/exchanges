@@ -257,7 +257,7 @@ class Nobitex
 
     const config: UdfFetcherConfig = {
       symbol: `${userTransactions[0]?.asset_name.toLowerCase()}usdt`,
-      resolution: "60",
+      resolution: to - from > 86400 ? "1D" : "1",
       from,
       to,
     };
