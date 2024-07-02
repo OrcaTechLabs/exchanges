@@ -32,18 +32,18 @@ const nobitexApi = ofetch.create({
 class Nobitex
   implements BalanceFetcher, ValueFetcher, TransactionFetcher, UdfFetcher
 {
-  private fetchRawUdf(config: UdfFetcherConfig): Promise<RawUdfResponse> {
-    return nobitexApi<RawUdfResponse>("/market/udf/history", {
-      query: {
-        symbol: config.symbol,
-        resolution: config.resolution,
-        from: config.from,
-        to: config.to,
-      },
-    });
-  }
   async fetchUdf(config: UdfFetcherConfig): Promise<FormattedUdf[]> {
-    const UdfResponse = await this.fetchRawUdf(config);
+    const UdfResponse = await nobitexApi<RawUdfResponse>(
+      "/market/udf/history",
+      {
+        query: {
+          symbol: config.symbol,
+          resolution: config.resolution,
+          from: config.from,
+          to: config.to,
+        },
+      }
+    );
 
     return UdfResponse.t.map(
       (time, index) =>
@@ -163,7 +163,7 @@ class Nobitex
         }
       );
 
-      const withoutPrice = userTransactions.map(
+      return userTransactions.map(
         (transaction) =>
           ({
             time: new Date(transaction.created_at),
@@ -180,16 +180,6 @@ class Nobitex
             },
           } satisfies Transaction)
       ) as Transaction[];
-
-      try {
-        return await this.enrichTransactionsWithPrices(withoutPrice);
-      } catch (error) {
-        console.log("Failed to enrich transactions with prices for ", {
-          error,
-          wallet,
-        });
-        return withoutPrice;
-      }
     });
 
     return (await Promise.all(promises)).flat();
@@ -246,44 +236,6 @@ class Nobitex
           name: wallet.currency,
           quantity: parsePossibleLargeNumber(wallet.balance),
         } satisfies Balance)
-    );
-  }
-
-  private async enrichTransactionsWithPrices(userTransactions: Transaction[]) {
-    // Step 1: Find the earliest and latest transaction dates
-    const dates = userTransactions.map((t) => t.time.getTime());
-    const from = Math.floor(Math.min(...dates) / 1000);
-    const to = Math.floor(Math.max(...dates) / 1000);
-
-    const config: UdfFetcherConfig = {
-      symbol: `${userTransactions[0]?.asset_name.toLowerCase()}usdt`,
-      resolution: to - from > 86400 ? "1D" : "1",
-      from,
-      to,
-    };
-
-    const rawUdfResponse = await this.fetchRawUdf(config);
-    console.log({ rawUdfResponse, config });
-    // Step 3: Map prices to transactions
-    return (
-      userTransactions?.map((transaction) => {
-        const assetPrices = rawUdfResponse.t.map((time, index) => ({
-          time,
-          price: rawUdfResponse.c[index],
-        }));
-        const transactionTime = transaction.time.getTime() / 1000;
-        const closestPrice = assetPrices?.reduce((prev, curr) =>
-          Math.abs(curr.time - transactionTime) <
-          Math.abs(prev.time - transactionTime)
-            ? curr
-            : prev
-        );
-        console.log({ closestPrice, assetName: transaction.asset_name });
-        return {
-          ...transaction,
-          price: closestPrice?.price || null,
-        };
-      }) ?? []
     );
   }
 }
