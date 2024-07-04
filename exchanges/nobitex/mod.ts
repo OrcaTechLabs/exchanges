@@ -42,6 +42,8 @@ class Nobitex
           from: config.from,
           to: config.to,
         },
+        timeout: 2_000,
+        retryDelay: 1_000,
       }
     );
 
