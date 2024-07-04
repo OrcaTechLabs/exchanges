@@ -1,1 +1,1 @@
-export * from "https://deno.land/x/sentry/build/index.mjs";
+export * from "https://deno.land/x/sentry@8.13.0/build/index.mjs";
