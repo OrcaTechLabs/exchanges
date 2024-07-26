@@ -218,10 +218,12 @@ class Nobitex
           resolution: "1",
           symbol: currencyConfig.symbol!,
         });
-        formattedTransaction.price =
+        const value =
           (currencyConfig.isInverted
             ? 1 / udfEntry[0].close
             : udfEntry[0].close) * (currencyConfig.multiplier ?? 1);
+        formattedTransaction.price =
+          Math.round(value / currencyConfig.accuracy) * currencyConfig.accuracy;
         formattedTransactions.push(formattedTransaction);
       }
 
