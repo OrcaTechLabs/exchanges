@@ -44,7 +44,7 @@ const formatTransaction = (transaction: UserTransaction) => {
 };
 
 const processType = (transaction: ReturnType<typeof formatTransaction>) => {
-  const description = transaction.meta.description;
+  const description = transaction.meta.description.toLowerCase();
 
   if (description.includes("خرید")) {
     return { ...transaction, type: "buy" } as const;
@@ -58,7 +58,7 @@ const processType = (transaction: ReturnType<typeof formatTransaction>) => {
     return { ...transaction, type: "deposit" } as const;
   }
 
-  if (description.includes("برداشت")) {
+  if (description.includes("withdraw")) {
     return { ...transaction, type: "withdrawal" } as const;
   }
 
