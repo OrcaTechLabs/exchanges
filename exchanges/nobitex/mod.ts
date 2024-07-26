@@ -50,8 +50,8 @@ class Nobitex
           query: {
             symbol,
             resolution,
-            from: start,
-            to: end,
+            from: Math.floor(start),
+            to: Math.floor(end),
           },
           timeout: 2_000,
           retryDelay: 1_000,
