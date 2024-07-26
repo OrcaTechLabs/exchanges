@@ -9,10 +9,13 @@ import {
   KnownAsset,
   FormattedUdf,
   UdfFetcherConfig,
+  TransactionType,
 } from "../../interfaces/mod.ts";
 import { UdfFetcher } from "../../interfaces/udf-fetcher.interface.ts";
 import { ofetch } from "../../libs/ofetch.ts";
 import { parsePossibleLargeNumber } from "../../utils/bigint.ts";
+import { pipe } from "../../utils/pipe.ts";
+import { configMap } from "./asset-config.ts";
 import { metadataSchema } from "./schema.ts";
 import {
   RawUdfResponse,
@@ -21,6 +24,7 @@ import {
   UserTransactions,
   UserWallets,
 } from "./types.ts";
+import { formatTransaction, processPrice, processType } from "./utils.ts";
 
 const nobitexApi = ofetch.create({
   baseURL: "https://api.nobitex.ir",
@@ -33,36 +37,56 @@ class Nobitex
   implements BalanceFetcher, ValueFetcher, TransactionFetcher, UdfFetcher
 {
   async fetchUdf(config: UdfFetcherConfig): Promise<FormattedUdf[]> {
-    const UdfResponse = await nobitexApi<RawUdfResponse>(
-      "/market/udf/history",
-      {
-        query: {
-          symbol: config.symbol,
-          resolution: config.resolution,
-          from: config.from,
-          to: config.to,
-        },
-        timeout: 2_000,
-        retryDelay: 1_000,
-      }
-    );
+    const TWO_DAYS_IN_SECONDS = 2 * 24 * 60 * 60;
+    const { from, to, symbol, resolution } = config;
 
-    return UdfResponse.t.map(
-      (time, index) =>
-        ({
-          time: time,
-          open: UdfResponse.o[index],
-          high: UdfResponse.h[index],
-          low: UdfResponse.l[index],
-          close: UdfResponse.c[index],
-          volume: UdfResponse.v[index],
-        } satisfies FormattedUdf)
+    const fetchInterval = async (
+      start: number,
+      end: number
+    ): Promise<FormattedUdf[]> => {
+      const UdfResponse = await nobitexApi<RawUdfResponse>(
+        "/market/udf/history",
+        {
+          query: {
+            symbol,
+            resolution,
+            from: start,
+            to: end,
+          },
+          timeout: 2_000,
+          retryDelay: 1_000,
+        }
+      );
+
+      return UdfResponse.t.map(
+        (time, index) =>
+          ({
+            time: time,
+            open: UdfResponse.o[index],
+            high: UdfResponse.h[index],
+            low: UdfResponse.l[index],
+            close: UdfResponse.c[index],
+            volume: UdfResponse.v[index],
+          } satisfies FormattedUdf)
+      );
+    };
+
+    const intervals: { start: number; end: number }[] = [];
+    for (let start = from; start < to; start += TWO_DAYS_IN_SECONDS) {
+      const end = Math.min(start + TWO_DAYS_IN_SECONDS, to);
+      intervals.push({ start, end });
+    }
+
+    const results = await Promise.all(
+      intervals.map((interval) => fetchInterval(interval.start, interval.end))
     );
+    return results.flat();
   }
 
   private validateMetadata(metadata: IntegrationMetadata) {
     return metadataSchema.parse(metadata);
   }
+
   private findMatchingAsset(
     wallet: UserWallets["wallets"][0],
     assets: KnownAsset[]
@@ -164,24 +188,42 @@ class Nobitex
           walletId: wallet.id,
         }
       );
+      const formattedTransactions: Transaction[] = [];
+      for (const transaction of userTransactions) {
+        const formattedTransaction: Transaction = pipe(
+          transaction,
+          formatTransaction,
+          processType,
+          processPrice
+        );
 
-      return userTransactions.map(
-        (transaction) =>
-          ({
-            time: new Date(transaction.created_at),
-            type: transaction.amount.startsWith("-") ? "sell" : "buy",
-            asset_name: matchingAsset.name,
-            quantity: parsePossibleLargeNumber(
-              transaction.amount.replace(/^-/, "")
-            ),
-            price: null,
-            balance: parsePossibleLargeNumber(transaction.balance),
-            meta: {
-              nobitex_id: transaction.id,
-              description: transaction.description,
-            },
-          } satisfies Transaction)
-      ) as Transaction[];
+        const currencyConfig = configMap.get(transaction.currency);
+        if (!currencyConfig) {
+          formattedTransaction.price = null;
+          formattedTransactions.push(formattedTransaction);
+          continue;
+        }
+
+        if (currencyConfig.isRoot) {
+          formattedTransaction.price = 1;
+          formattedTransactions.push(formattedTransaction);
+          continue;
+        }
+
+        const udfEntry = await this.fetchUdf({
+          from: formattedTransaction.time.getTime() / 1000 - 60,
+          to: formattedTransaction.time.getTime() / 1000,
+          resolution: "1",
+          symbol: currencyConfig.symbol!,
+        });
+        formattedTransaction.price =
+          (currencyConfig.isInverted
+            ? 1 / udfEntry[0].close
+            : udfEntry[0].close) * (currencyConfig.multiplier ?? 1);
+        formattedTransactions.push(formattedTransaction);
+      }
+
+      return formattedTransactions;
     });
 
     return (await Promise.all(promises)).flat();

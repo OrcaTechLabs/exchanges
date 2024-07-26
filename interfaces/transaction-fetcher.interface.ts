@@ -10,9 +10,10 @@ export interface TransactionFetcher {
   ): Promise<Transaction[]>;
 }
 
+export type TransactionType = "buy" | "sell" | "deposit" | "withdrawal";
 export interface Transaction {
   time: Date;
-  type: "buy" | "sell";
+  type: TransactionType;
   asset_name: string;
   quantity: bigint | number;
   price: number | null;
