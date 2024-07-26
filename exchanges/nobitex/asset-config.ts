@@ -16,7 +16,7 @@ configMap.set("usdt", {
   baseAsset: "usd",
 });
 
-configMap.set("ریال", {
+configMap.set("﷼", {
   isInverted: true,
   symbol: "USDTIRT",
   baseAsset: "irr",
