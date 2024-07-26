@@ -197,7 +197,9 @@ class Nobitex
           processPrice
         );
 
-        const currencyConfig = configMap.get(transaction.currency);
+        const currencyConfig = configMap.get(
+          formattedTransaction.meta.unit as string
+        );
         if (!currencyConfig) {
           formattedTransaction.price = null;
           formattedTransactions.push(formattedTransaction);
